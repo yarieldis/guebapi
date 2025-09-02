@@ -1,0 +1,35 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build",
+            "type": "shell",
+            "command": "go build",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": ["$go"],
+            "detail": "Build the Go application"
+        },
+        {
+            "label": "Run",
+            "type": "shell",
+            "command": "go run .",
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            },
+            "problemMatcher": [],
+            "detail": "Run the Go application"
+        },
+        {
+            "label": "Test",
+            "type": "shell",
+            "command": "go test ./...",
+            "group": "test",
+            "problemMatcher": ["$go"],
+            "detail": "Run tests for the Go application"
+        }
+    ]
+}

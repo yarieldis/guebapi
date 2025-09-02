@@ -1,0 +1,11 @@
+{
+    "go.useLanguageServer": true,
+    "go.formatTool": "gofmt",
+    "go.lintTool": "golint",
+    "go.buildOnSave": "workspace",
+    "go.vetOnSave": "workspace",
+    "go.testOnSave": true,
+    "go.useCodeSnippetsOnFunctionSuggest": true,
+    "go.autocompleteUnimportedPackages": true,
+    "go.useGoProxyToCheckForUpdates": true
+}
