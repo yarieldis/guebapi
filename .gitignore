@@ -1,0 +1,35 @@
+# Go build artifacts
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Logs and temp files
+*.log
+*.swp
+*.tmp
+
+# Dependency directories (uncommon, unless vendoring)
+vendor/
+
+# Ignore IDE settings except .vscode (keep .vscode tracked)
+!.vscode/
+
+# Ignore node_modules if present (for mixed projects)
+node_modules/
+
+# Ignore coverage files
+coverage.out
+
+# Ignore binaries in root or subfolders
+/bin/
+/build/
+/dist/
+
+# Ignore environment files
