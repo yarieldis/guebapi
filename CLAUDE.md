@@ -37,26 +37,46 @@ This file provides guidance to Claude Code when working with the **guebapi** rep
 
 ```
 guebapi/
-├── main.go             # Application entry point with all handlers and middleware
-├── go.mod              # Go module definition and dependencies
-├── go.sum              # Dependency checksums
-├── README.md           # Project documentation
-├── .gitignore          # Git ignore rules
-├── cmd/                # Command-line application entry points (future)
-├── config/             # Configuration files (future)
-├── internal/           # Private application code
-│   ├── api/            # API handlers (future)
-│   ├── pkg/            # Internal packages (future)
-│   ├── repository/     # Data access layer (future)
-│   └── service/        # Business logic layer (future)
-├── tests/              # Test files
-├── openspec/           # API specifications
-│   ├── specs/          # OpenAPI/specification files
-│   └── changes/        # Change tracking
-└── .vscode/            # VS Code configuration
-    ├── launch.json     # Debug configuration
-    ├── tasks.json      # Build/run/test tasks
-    └── settings.json   # Editor settings
+├── main.go                           # Application entry point (dependency wiring)
+├── go.mod                            # Go module definition and dependencies
+├── go.sum                            # Dependency checksums
+├── README.md                         # Project documentation
+├── .gitignore                        # Git ignore rules
+├── .env.example                      # Environment variables template
+├── config/                           # Configuration management
+│   ├── config.go                     # Configuration structs
+│   └── loader.go                     # Environment variable loader
+├── internal/                         # Private application code
+│   ├── api/                          # API layer
+│   │   ├── handlers/                 # HTTP request handlers
+│   │   │   ├── auth.go               # Login/register handlers
+│   │   │   ├── profile.go            # Profile handlers
+│   │   │   └── handlers_test.go      # Handler tests
+│   │   ├── middleware/               # HTTP middleware
+│   │   │   ├── auth.go               # JWT authentication
+│   │   │   └── auth_test.go          # Middleware tests
+│   │   └── router/                   # Route configuration
+│   │       └── router.go             # Route setup
+│   ├── models/                       # Domain models
+│   │   ├── user.go                   # User struct
+│   │   └── claims.go                 # JWT claims struct
+│   ├── repository/                   # Data access layer
+│   │   └── user/                     # User storage
+│   │       ├── repository.go         # Repository interface
+│   │       ├── memory.go             # In-memory implementation
+│   │       └── memory_test.go        # Repository tests
+│   └── service/                      # Business logic layer
+│       └── auth/                     # Authentication service
+│           ├── service.go            # Service interface
+│           ├── jwt.go                # JWT implementation
+│           └── jwt_test.go           # Service tests
+├── openspec/                         # API specifications
+│   ├── specs/                        # OpenAPI/specification files
+│   └── changes/                      # Change tracking
+└── .vscode/                          # VS Code configuration
+    ├── launch.json                   # Debug configuration
+    ├── tasks.json                    # Build/run/test tasks
+    └── settings.json                 # Editor settings
 ```
 
 ## Quick Start
@@ -142,20 +162,36 @@ Authorization: <jwt_token>
 
 ## Architecture Patterns
 
-### Current Architecture
+### Layered Architecture
 
-The application currently follows a monolithic single-file structure in `main.go` with:
-- **Models**: `User` and `Claims` structs
-- **Handlers**: HTTP request handlers (`loginHandler`, `registerHandler`, `profileHandler`, `updateHandler`)
-- **Middleware**: JWT authentication middleware (`authMiddleware`)
-- **In-memory storage**: User data stored in a map
+The application follows a standard Go project layout with clear separation of concerns:
 
-### Planned Architecture (internal/ directories)
+- **Models** (`internal/models/`): Domain models (`User`, `Claims`)
+- **Repository** (`internal/repository/`): Data access layer with interface-based design
+  - `user.Repository` interface for user storage operations
+  - `user.MemoryRepository` in-memory implementation (easily replaceable with database)
+- **Service** (`internal/service/`): Business logic layer
+  - `auth.Service` interface for authentication operations
+  - `auth.JWTService` implementation with JWT token handling
+- **Handlers** (`internal/api/handlers/`): HTTP request handlers
+  - `AuthHandler` for login/register endpoints
+  - `ProfileHandler` for profile management
+- **Middleware** (`internal/api/middleware/`): Cross-cutting concerns
+  - JWT authentication middleware
+- **Router** (`internal/api/router/`): Route configuration and setup
+- **Config** (`config/`): Externalized configuration via environment variables
 
-- **api/**: HTTP handlers and route definitions
-- **service/**: Business logic layer
-- **repository/**: Data access layer (database interactions)
-- **pkg/**: Shared internal packages
+### Dependency Flow
+
+```
+main.go
+  └── config.Load()
+  └── user.NewMemoryRepository()
+  └── auth.NewJWTService(repo, config)
+  └── handlers.NewAuthHandler(authService)
+  └── handlers.NewProfileHandler(userRepo)
+  └── router.SetupRouter(handlers, authService)
+```
 
 ### Gin Router Pattern
 
@@ -183,21 +219,23 @@ JSON Web Tokens for stateless authentication:
 
 ### Adding a New Public Endpoint
 
-1. Create handler function in `main.go`:
+1. Create or modify handler in `internal/api/handlers/`:
    ```go
-   func newHandler(c *gin.Context) {
+   func (h *MyHandler) NewEndpoint(c *gin.Context) {
        // Handler logic
    }
    ```
-2. Register route in the `public` group:
+2. Register route in `internal/api/router/router.go`:
    ```go
-   public.POST("/new-endpoint", newHandler)
+   public.POST("/new-endpoint", myHandler.NewEndpoint)
    ```
+3. Add tests in `internal/api/handlers/handlers_test.go`
 
 ### Adding a New Protected Endpoint
 
-1. Create handler function
-2. Register route in the `protected` group (middleware applied automatically)
+1. Create handler method in appropriate handler struct
+2. Register route in the `protected` group in `router.go` (middleware applied automatically)
+3. Add tests with authentication token
 
 ### Working with Request Data
 
@@ -227,9 +265,16 @@ c.JSON(http.StatusBadRequest, gin.H{"error": "error message"})
 
 ### Environment Variables
 
-Currently hardcoded (to be externalized):
-- JWT secret key
-- Server port (8080)
+Configuration is loaded from environment variables with sensible defaults:
+
+| Variable              | Description                  | Default            |
+|-----------------------|------------------------------|--------------------|
+| `SERVER_HOST`         | Server host                  | `` (empty)         |
+| `SERVER_PORT`         | Server port                  | `8080`             |
+| `JWT_SECRET_KEY`      | Secret key for JWT signing   | `secret_key_here`  |
+| `JWT_TOKEN_DURATION`  | JWT token duration           | `72h`              |
+
+Copy `.env.example` to `.env` and modify as needed for local development.
 
 ### VS Code Configuration
 
@@ -276,7 +321,7 @@ func TestHandler(t *testing.T) {
 ## Important Notes
 
 - **In-memory storage**: User data is stored in memory and will be lost on restart
-- **Hardcoded secrets**: JWT key is hardcoded (should use environment variables in production)
+- **Default secrets**: JWT key has a default value; set `JWT_SECRET_KEY` environment variable in production
 - **No password hashing**: Passwords are stored in plain text (implement bcrypt for production)
 - **No input validation**: Add validation for production use
 
