@@ -373,7 +373,53 @@ terraform destroy
 
 ---
 
-## 7. Debugging
+## 7. CI/CD (GitHub Actions)
+
+### Current state
+
+`.github/workflows/go.yml` runs on every push and pull request to `master`:
+
+- `go build -v ./...`
+- `go test -v ./...` (Go 1.26)
+
+### Recommended CI additions
+
+- `go vet ./...`
+- `gofmt -l .` (fail if any file is unformatted)
+- `terraform fmt -check -recursive` + `terraform validate` (requires `hashicorp/setup-terraform`)
+
+### What CD (auto-deploy) requires
+
+1. **Remote Terraform state** — GitHub runners are ephemeral, so local state would be lost
+   every run. Requires an **S3 backend + DynamoDB lock table**.
+2. **AWS credentials for GitHub** — via **OIDC federation** (recommended, no static keys) or
+   static `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` repo secrets.
+3. **`JWT_SECRET_KEY`** — as a repo secret, injected via `TF_VAR_jwt_secret_key`.
+
+### Proposed workflow
+
+| Trigger | Action |
+|---------|--------|
+| Pull request to `master` | build + test + vet + `terraform plan` (no changes applied) |
+| Push/merge to `master` | build + test + build Lambda zip + `terraform apply` |
+| `workflow_dispatch` | manual deploy button |
+
+The deploy job would:
+
+1. Cross-compile the Go binary (`linux/arm64`) and zip it → `lambda.zip`
+2. Run `terraform init` (S3 backend), `terraform plan`, `terraform apply -auto-approve`
+3. Print `terraform output api_url`
+
+### Backend bootstrap (chicken-and-egg)
+
+The S3 bucket + DynamoDB lock table must exist before Terraform can use them as its backend:
+
+- **Option A**: add a `terraform/bootstrap/` (or script) that creates those two resources once.
+- **Option B**: create the S3 bucket + lock table manually, then wire the backend config to use them.
+
+---
+
+## 8. Debugging
 
 ### Local server
 
@@ -422,7 +468,7 @@ The repo ships `.vscode/` config:
 
 ---
 
-## 8. Security notes (current limitations)
+## 9. Security notes (current limitations)
 
 - Passwords are stored in **plain text** — add bcrypt before real production use.
 - Input validation is minimal (JSON binding only) — add stricter validation.
