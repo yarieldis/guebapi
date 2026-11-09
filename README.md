@@ -49,12 +49,13 @@ guebapi/
 | POST   | `/api/login`               | Login and get JWT token    | No           |
 | GET    | `/api/protected/profile`   | Get user profile           | Yes          |
 | POST   | `/api/protected/update`    | Update user password       | Yes          |
+| GET    | `/health`                  | Health check               | No           |
 
 ## Getting Started
 
 ### Prerequisites
 
-- Go 1.24+
+- Go 1.26+
 - [Gin](https://github.com/gin-gonic/gin)
 - [JWT](https://github.com/golang-jwt/jwt)
 
@@ -85,8 +86,11 @@ The application can be configured via environment variables:
 |---------------------|------------------------------|--------------------|
 | `SERVER_HOST`       | Server host                  | `` (empty)         |
 | `SERVER_PORT`       | Server port                  | `8080`             |
-| `JWT_SECRET_KEY`    | Secret key for JWT signing   | `secret_key_here`  |
-| `JWT_TOKEN_DURATION`| JWT token duration           | `72h`              |
+| `JWT_SECRET_KEY`      | Secret key for JWT signing | `secret_key_here` |
+| `JWT_TOKEN_DURATION`  | JWT token duration         | `72h`             |
+| `STORAGE_BACKEND`     | Storage backend (`memory`/`dynamodb`) | `memory` |
+| `DYNAMODB_TABLE_NAME` | DynamoDB table name        | `users`           |
+| `AWS_REGION`          | AWS region                 | `us-east-1`       |
 
 ### Running the Server
 
@@ -125,6 +129,65 @@ curl -X POST http://localhost:8080/api/login \
 ```sh
 curl http://localhost:8080/api/protected/profile \
   -H "Authorization: <your-jwt-token>"
+```
+
+## Deployment (AWS API Gateway + Lambda)
+
+The application can be deployed to AWS as a serverless API: API Gateway (HTTP API) fronts a Lambda function, with user data persisted in DynamoDB.
+
+### Prerequisites
+
+- [Terraform](https://www.terraform.io/) 1.5+
+- [AWS CLI](https://aws.amazon.com/cli/) with credentials configured
+- Go 1.26+
+
+### 1. Build the Lambda package
+
+Build the Go binary for Lambda (Linux, arm64) and zip it:
+
+```sh
+# macOS / Linux / Git Bash
+GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -o bootstrap ./cmd/lambda
+zip lambda.zip bootstrap
+```
+
+On Windows (PowerShell):
+
+```powershell
+$env:GOOS = "linux"; $env:GOARCH = "arm64"; $env:CGO_ENABLED = "0"
+go build -o bootstrap ./cmd/lambda
+Compress-Archive -Path bootstrap -DestinationPath lambda.zip
+```
+
+### 2. Configure Terraform variables
+
+```sh
+cd terraform
+cp terraform.tfvars.example terraform.tfvars
+# Edit terraform.tfvars with your AWS region and a real JWT secret
+```
+
+### 3. Deploy
+
+```sh
+terraform init
+terraform plan
+terraform apply
+```
+
+### 4. Verify
+
+```sh
+terraform output api_url
+curl <api_url>/health
+```
+
+Then register/login as normal against `<api_url>`.
+
+### 5. Tear down
+
+```sh
+terraform destroy
 ```
 
 ## Architecture
