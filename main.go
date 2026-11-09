@@ -4,31 +4,22 @@ import (
 	"log"
 
 	"github.com/yarieldis/guebapi/config"
-	"github.com/yarieldis/guebapi/internal/api/handlers"
-	"github.com/yarieldis/guebapi/internal/api/router"
+	"github.com/yarieldis/guebapi/internal/app"
 	"github.com/yarieldis/guebapi/internal/repository/user"
-	"github.com/yarieldis/guebapi/internal/service/auth"
 )
 
 func main() {
 	// Load configuration
 	cfg := config.Load()
 
-	// Initialize repository with default users
+	// Local development uses the in-memory repository with seeded users
 	userRepo := user.NewMemoryRepositoryWithData(map[string]string{
 		"john": "password123",
 		"jane": "password456",
 	})
 
-	// Initialize services
-	authService := auth.NewJWTService(userRepo, cfg.JWT.SecretKey, cfg.JWT.TokenDuration)
-
-	// Initialize handlers
-	authHandler := handlers.NewAuthHandler(authService)
-	profileHandler := handlers.NewProfileHandler(userRepo)
-
-	// Setup router
-	r := router.SetupRouter(authHandler, profileHandler, authService)
+	// Build the router
+	r := app.BuildRouter(cfg, userRepo)
 
 	// Start server
 	addr := cfg.Server.Address()

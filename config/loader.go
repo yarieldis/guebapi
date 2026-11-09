@@ -16,6 +16,13 @@ func Load() *Config {
 			SecretKey:     getEnv("JWT_SECRET_KEY", "secret_key_here"),
 			TokenDuration: getDurationEnv("JWT_TOKEN_DURATION", 72*time.Hour),
 		},
+		Storage: StorageConfig{
+			Backend:       getEnv("STORAGE_BACKEND", "memory"),
+			DynamoDBTable: getEnv("DYNAMODB_TABLE_NAME", "users"),
+		},
+		AWS: AWSConfig{
+			Region: getEnv("AWS_REGION", "us-east-1"),
+		},
 	}
 }
 

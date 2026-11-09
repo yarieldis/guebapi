@@ -1,6 +1,8 @@
 package router
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/yarieldis/guebapi/internal/api/handlers"
 	"github.com/yarieldis/guebapi/internal/api/middleware"
@@ -10,6 +12,11 @@ import (
 // SetupRouter configures and returns the Gin router
 func SetupRouter(authHandler *handlers.AuthHandler, profileHandler *handlers.ProfileHandler, authService auth.Service) *gin.Engine {
 	router := gin.Default()
+
+	// Health check
+	router.GET("/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"status": "ok"})
+	})
 
 	// Public routes
 	public := router.Group("/api")
