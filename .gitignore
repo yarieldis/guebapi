@@ -39,3 +39,13 @@ coverage.out
 
 # Claude Code local (user-specific) settings
 .claude/settings.local.json
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfvars
+
+# Lambda build artifacts
+lambda.zip
+bootstrap

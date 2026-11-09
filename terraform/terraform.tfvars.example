@@ -1,0 +1,9 @@
+# Copy this file to terraform.tfvars and fill in real values.
+# terraform.tfvars is git-ignored and must NOT be committed.
+
+aws_region         = "us-east-1"
+service_name       = "guebapi"
+lambda_zip_path    = "lambda.zip"
+dynamodb_table_name = "users"
+jwt_secret_key     = "change-me-to-a-long-random-secret"
+jwt_token_duration = "72h"
