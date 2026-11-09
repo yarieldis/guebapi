@@ -36,3 +36,6 @@ coverage.out
 .env
 .env.local
 .env.*.local
+
+# Claude Code local (user-specific) settings
+.claude/settings.local.json
